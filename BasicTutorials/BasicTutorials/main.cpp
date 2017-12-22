@@ -11,6 +11,8 @@
 unsigned int g_programId = 0;
 unsigned int g_vertexShaderId = 0, g_fragmentShaderId = 0;
 
+unsigned int g_bufferId = 0;
+unsigned int g_indexBufferId = 0;
 
 unsigned int createShader(unsigned int type, const std::string &source){
 	unsigned int _id = glCreateShader(type);
@@ -83,13 +85,79 @@ unsigned int createShaderProgram(const std::string &vertexShaderSource, const st
 	return 0;
 }
 
+unsigned int createIndexBuffer(){
+	std::vector<unsigned int > _data = {
+		0, 1, 2, 2, 1, 3
+	};
+
+	unsigned int _bufferId = 0;
+	glGenBuffers(1, &_bufferId);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _bufferId);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, _data.size() * sizeof(_data[0]), &_data[0], GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	return _bufferId;
+
+}
+
+unsigned int createBuffer(){
+	/*std::vector<float> _data = {
+		-0.5f, -0.5f,
+		-0.5f, 0.5f,
+		0.5f, -0.5f,
+
+		0.5f, -0.5f,
+		-0.5f, 0.5f,
+		0.5f, 0.5f
+	};*/
+
+	std::vector<float> _data = {
+		-0.5f, -0.5f,
+		-0.5f, 0.5f,
+		0.5f, -0.5f,
+		0.5f, 0.5f
+	};
+
+	unsigned int _bufferId = 0;
+	glGenBuffers(1, &_bufferId);
+	glBindBuffer(GL_ARRAY_BUFFER, _bufferId);
+	glBufferData(GL_ARRAY_BUFFER, _data.size() * sizeof(_data[0]), &_data[0], GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	return _bufferId;
+}
+
 void init(){
-	std::string _vertexShaderSource = " void main() { gl_Position = vec4(0.0, 0.0, 0.0, 1.0); }";
+	std::string _vertexShaderSource = "#version 330 core \n \
+									   layout (location = 0) in vec2 vertex; void main() { gl_Position = vec4(vertex, 0.0, 1.0); }";
 	std::string _fragmentShaderSource = " void main() { gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); }";
 
 	g_programId = createShaderProgram(_vertexShaderSource, _fragmentShaderSource);
+	g_bufferId = createBuffer();
+	g_indexBufferId = createIndexBuffer();
 
 	std::cout << "PROGRAM ID: " << g_programId << std::endl;
+}
+
+void drawTriangle(){
+	glUseProgram(g_programId);
+
+	glBindBuffer(GL_ARRAY_BUFFER, g_bufferId);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_indexBufferId);
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+	//glDrawArrays(GL_TRIANGLES, 0, 6);
+
+
+	glDisableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glUseProgram(0);
 }
 
 void display(){
@@ -99,7 +167,9 @@ void display(){
 	glClearColor(1.0, _x, 0.0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT);
 
+	drawTriangle();
 }
+
 
 
 int main(){
@@ -135,6 +205,9 @@ int main(){
 
 		if (_break)break;
 	}
+
+	glDeleteBuffers(1, &g_bufferId);
+	glDeleteBuffers(1, &g_indexBufferId);
 
 	glDeleteProgram(g_programId);
 	glDeleteShader(g_vertexShaderId);
